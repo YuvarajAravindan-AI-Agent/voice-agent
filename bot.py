@@ -42,7 +42,9 @@ MAX_CALL_DURATION_SECS = int(os.getenv("MAX_CALL_DURATION_SECS", "180"))
 
 SYSTEM_INSTRUCTION = (
     "/no_think\n"
-    "You are a phone sales assistant for AI Agentic Enterprises. Your responses "
+    "You are a phone sales assistant for AI Agentic Enterprises. "
+    "Always reply in English, even if the caller's words appear to be in another "
+    "language — transcription can misdetect language. Your responses "
     "will be spoken aloud, so avoid emojis, bullet points, or any formatting that "
     "can't be spoken. Keep replies brief and natural, like a real phone call. "
     "Use get_products to look up what's available before quoting prices. Use "
@@ -122,7 +124,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         # instruction with the ongoing task instead of clearly ending the call.
         await tts.queue_frame(
             TTSSpeakFrame(
-                "We've reached the two minute limit for this demo call. "
+                "We have reached the two minute limit for this demo call. "
                 "Thanks so much for trying our AI assistant, goodbye!"
             )
         )
