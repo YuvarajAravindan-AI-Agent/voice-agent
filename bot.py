@@ -80,7 +80,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     tts = RimeHttpTTSService(
         api_key=RIME_API_KEY,
         aiohttp_session=session,
-        settings=RimeHttpTTSService.Settings(voice=RIME_VOICE_ID),
+        settings=RimeHttpTTSService.Settings(model="mistv2", voice=RIME_VOICE_ID),
     )
 
     from pipecat.services.openai.llm import OpenAILLMService
