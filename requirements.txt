@@ -1,4 +1,4 @@
-pipecat-ai[silero,websocket]
+pipecat-ai[silero,websocket,deepgram,openai]
 aiohttp
 python-dotenv
 loguru
