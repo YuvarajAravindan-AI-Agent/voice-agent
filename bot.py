@@ -1,6 +1,6 @@
 """
 Voice-agent orchestrator: Twilio (or local webrtc for testing) <-> STT/LLM/TTS
-on the RunPod GPU pod (reached via the runpod-tunnel SSH tunnel on localhost)
+(Deepgram STT + Rime TTS, hosted APIs -- no GPU pod required)
 <-> odoo-tools for Odoo sales-order operations.
 """
 import asyncio
@@ -26,22 +26,29 @@ from pipecat.processors.aggregators.llm_response_universal import (
 )
 from pipecat.runner.types import RunnerArguments
 from pipecat.runner.utils import create_transport
-from pipecat.services.ollama.llm import OLLamaLLMService
+from pipecat.services.deepgram.stt import DeepgramSTTService
+from pipecat.services.rime.tts import RimeHttpTTSService
 from pipecat.transports.base_transport import BaseTransport, TransportParams
 from pipecat.transports.websocket.fastapi import FastAPIWebsocketParams
 
 from odoo_tools import create_order, create_partner, get_order, get_orders, get_products
-from whisper_http_stt import WhisperHttpSTTService
-from kokoro_http_tts import KokoroHttpTTSService
 
-STT_URL = os.getenv("STT_URL", "http://127.0.0.1:8010")
-TTS_URL = os.getenv("TTS_URL", "http://127.0.0.1:8011")
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434/v1")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:8b")
+DEEPGRAM_API_KEY = os.environ["DEEPGRAM_API_KEY"]
+RIME_API_KEY = os.environ["RIME_API_KEY"]
+RIME_VOICE_ID = os.getenv("RIME_VOICE_ID", "cove")
+
+# LLM: Gemini via its OpenAI-compatible endpoint (personal key with existing
+# Google Developer Program credit balance -- not a self-hosted model, so this
+# removes the last GPU dependency too).
+LLM_API_KEY = os.environ["LLM_API_KEY"]
+LLM_BASE_URL = os.getenv(
+    "LLM_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/"
+)
+LLM_MODEL = os.getenv("LLM_MODEL", "gemini-flash-latest")
+
 MAX_CALL_DURATION_SECS = int(os.getenv("MAX_CALL_DURATION_SECS", "180"))
 
 SYSTEM_INSTRUCTION = (
-    "/no_think\n"
     "You are a phone sales assistant for AI Agentic Enterprises. "
     "Always reply in English, even if the caller's words appear to be in another "
     "language — transcription can misdetect language. Your responses "
@@ -66,13 +73,23 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
     session = aiohttp.ClientSession()
 
-    stt = WhisperHttpSTTService(base_url=STT_URL, aiohttp_session=session)
-    tts = KokoroHttpTTSService(base_url=TTS_URL, aiohttp_session=session)
+    stt = DeepgramSTTService(
+        api_key=DEEPGRAM_API_KEY,
+        live_options=None,  # defaults are fine; language pinned via settings below if needed
+    )
+    tts = RimeHttpTTSService(
+        api_key=RIME_API_KEY,
+        aiohttp_session=session,
+        settings=RimeHttpTTSService.Settings(model="mistv2", voice=RIME_VOICE_ID),
+    )
 
-    llm = OLLamaLLMService(
-        base_url=OLLAMA_URL,
-        settings=OLLamaLLMService.Settings(
-            model=OLLAMA_MODEL,
+    from pipecat.services.openai.llm import OpenAILLMService
+
+    llm = OpenAILLMService(
+        api_key=LLM_API_KEY,
+        base_url=LLM_BASE_URL,
+        settings=OpenAILLMService.Settings(
+            model=LLM_MODEL,
             system_instruction=SYSTEM_INSTRUCTION,
         ),
     )
