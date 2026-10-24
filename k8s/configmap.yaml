@@ -8,7 +8,6 @@ data:
   RIME_MODEL: "mistv2"
   GEMINI_TTS_MODEL: "gemini-3.1-flash-tts-preview"
   GEMINI_TTS_VOICE: "Kore"
-  LLM_BASE_URL: "https://generativelanguage.googleapis.com/v1beta/openai/"
-  LLM_MODEL: "gemini-flash-latest"
+  LLM_MODEL: "gemini-flash-lite-latest"
   MAX_CALL_DURATION_SECS: "180"
   ODOO_TOOLS_URL: "http://odoo-tools:8790"

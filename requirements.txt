@@ -1,4 +1,4 @@
-pipecat-ai[silero,websocket,deepgram,openai,rime,google,runner,webrtc]
+pipecat-ai[silero,websocket,deepgram,openai,rime,google,runner,webrtc]==1.6.0
 aiohttp
 python-dotenv
 loguru

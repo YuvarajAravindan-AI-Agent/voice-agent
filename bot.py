@@ -27,6 +27,7 @@ from pipecat.processors.aggregators.llm_response_universal import (
 from pipecat.runner.types import RunnerArguments
 from pipecat.runner.utils import create_transport
 from pipecat.services.deepgram.stt import DeepgramSTTService
+from pipecat.services.google.llm import GoogleLLMService
 from pipecat.transports.base_transport import BaseTransport, TransportParams
 from pipecat.transports.websocket.fastapi import FastAPIWebsocketParams
 
@@ -35,14 +36,9 @@ from tts_factory import build_tts
 
 DEEPGRAM_API_KEY = os.environ["DEEPGRAM_API_KEY"]
 
-# LLM: Gemini via its OpenAI-compatible endpoint (personal key with existing
-# Google Developer Program credit balance -- not a self-hosted model, so this
-# removes the last GPU dependency too).
+# LLM: Gemini through the native google-genai client.
 LLM_API_KEY = os.environ["LLM_API_KEY"]
-LLM_BASE_URL = os.getenv(
-    "LLM_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/"
-)
-LLM_MODEL = os.getenv("LLM_MODEL", "gemini-flash-latest")
+LLM_MODEL = os.getenv("LLM_MODEL", "gemini-flash-lite-latest")
 
 MAX_CALL_DURATION_SECS = int(os.getenv("MAX_CALL_DURATION_SECS", "180"))
 
@@ -56,7 +52,10 @@ SYSTEM_INSTRUCTION = (
     "create_partner to register a new caller if they aren't an existing customer. "
     "Use create_order to place an order once you have a customer id, product id, "
     "and quantity. Use get_order or get_orders to check on existing orders. "
-    "Never invent product ids, prices, or order numbers — always look them up."
+    "Never invent product ids, prices, or order numbers — always look them up. "
+    "If the caller asks what we sell, offer, or have in stock, you must call "
+    "get_products first and answer only from its result; never describe products "
+    "or services from your own knowledge."
 )
 
 transport_params = {
@@ -78,12 +77,14 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     tts = build_tts(session)
     logger.info(f"TTS provider: {os.getenv('TTS_PROVIDER', 'rime-http')}")
 
-    from pipecat.services.openai.llm import OpenAILLMService
-
-    llm = OpenAILLMService(
+    # Native Gemini service, not the OpenAI-compatible endpoint: current Gemini
+    # models return tool calls with no index plus a "thought signature" that
+    # the OpenAI adapter drops, so the follow-up request fails with a 400
+    # ("function_response.name cannot be empty") and the bot goes silent.
+    # This service also disables thinking by default, which cuts reply latency.
+    llm = GoogleLLMService(
         api_key=LLM_API_KEY,
-        base_url=LLM_BASE_URL,
-        settings=OpenAILLMService.Settings(
+        settings=GoogleLLMService.Settings(
             model=LLM_MODEL,
             system_instruction=SYSTEM_INSTRUCTION,
         ),

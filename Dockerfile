@@ -11,6 +11,9 @@ COPY bot.py odoo_tools.py tts_factory.py compare_tts.py ./
 RUN useradd --create-home app && chown -R app /app
 USER app
 
+# Pipecat splits replies into sentences with NLTK; fetch the tokenizer at build time.
+RUN python -c "import nltk; nltk.download('punkt_tab')"
+
 EXPOSE 7860
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s \
   CMD python -c "import socket; socket.create_connection(('127.0.0.1', 7860), 3)"
