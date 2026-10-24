@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: voice-agent
+  labels:
+    app: voice-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: voice-agent
+  template:
+    metadata:
+      labels:
+        app: voice-agent
+    spec:
+      containers:
+        - name: bot
+          image: voice-agent:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 7860
+          envFrom:
+            - configMapRef:
+                name: voice-agent-config
+            - secretRef:
+                name: voice-agent-secrets
+          readinessProbe:
+            tcpSocket:
+              port: 7860
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 7860
+            initialDelaySeconds: 40
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: voice-agent
+spec:
+  selector:
+    app: voice-agent
+  ports:
+    - port: 7860
+      targetPort: 7860
