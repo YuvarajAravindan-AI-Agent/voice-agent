@@ -1,5 +1,6 @@
-pipecat-ai[silero,websocket,deepgram,openai]
+pipecat-ai[silero,websocket,deepgram,openai,rime,google]
 aiohttp
 python-dotenv
 loguru
 uvicorn[standard]
+requests

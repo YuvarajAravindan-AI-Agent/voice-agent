@@ -27,15 +27,13 @@ from pipecat.processors.aggregators.llm_response_universal import (
 from pipecat.runner.types import RunnerArguments
 from pipecat.runner.utils import create_transport
 from pipecat.services.deepgram.stt import DeepgramSTTService
-from pipecat.services.rime.tts import RimeHttpTTSService
 from pipecat.transports.base_transport import BaseTransport, TransportParams
 from pipecat.transports.websocket.fastapi import FastAPIWebsocketParams
 
 from odoo_tools import create_order, create_partner, get_order, get_orders, get_products
+from tts_factory import build_tts
 
 DEEPGRAM_API_KEY = os.environ["DEEPGRAM_API_KEY"]
-RIME_API_KEY = os.environ["RIME_API_KEY"]
-RIME_VOICE_ID = os.getenv("RIME_VOICE_ID", "cove")
 
 # LLM: Gemini via its OpenAI-compatible endpoint (personal key with existing
 # Google Developer Program credit balance -- not a self-hosted model, so this
@@ -77,11 +75,8 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         api_key=DEEPGRAM_API_KEY,
         live_options=None,  # defaults are fine; language pinned via settings below if needed
     )
-    tts = RimeHttpTTSService(
-        api_key=RIME_API_KEY,
-        aiohttp_session=session,
-        settings=RimeHttpTTSService.Settings(model="mistv2", voice=RIME_VOICE_ID),
-    )
+    tts = build_tts(session)
+    logger.info(f"TTS provider: {os.getenv('TTS_PROVIDER', 'rime-http')}")
 
     from pipecat.services.openai.llm import OpenAILLMService
 

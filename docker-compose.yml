@@ -1,0 +1,15 @@
+services:
+  bot:
+    build: .
+    env_file: .env
+    ports:
+      - "7860:7860"
+    restart: unless-stopped
+
+  compare:
+    build: .
+    env_file: .env
+    command: ["python", "compare_tts.py"]
+    volumes:
+      - ./out:/app/out
+    profiles: ["tools"]
